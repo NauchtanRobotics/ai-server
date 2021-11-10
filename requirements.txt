@@ -1,0 +1,4 @@
+configparser==5.1.0
+Django==3.2.9
+# opencv-python==4.5.4.58
+pytest==6.2.5
