@@ -1,5 +1,7 @@
 import logging
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
 from django.http import JsonResponse
@@ -17,7 +19,7 @@ def index(request):
 @csrf_exempt
 def ajax_view(request):
     data = {
-        "msg": "No file attached",
+        "error": "No file attached",
     }
 
     if request.method == 'POST':
@@ -63,8 +65,8 @@ def ajax_view(request):
 
             run_name = "tmp"
             tmp_folder = Path("/home/david/addn_repos/yolov5/runs/detect") / run_name
-            tmp_folder.unlink(missing_ok=True)
-            tmp_folder.mkdir(parents=True)
+            if tmp_folder.exists():
+                shutil.rmtree(str(tmp_folder))
 
             cmd = [
                 "/home/david/addn_repos/yolov5/venv/bin/python",
@@ -72,7 +74,7 @@ def ajax_view(request):
                 "--source",
                 str(dst_file_path),
                 "--iou-thres",
-                0.5,
+                "0.5",
                 "--agnostic-nms",
                 "--max-det",
                 "20",
@@ -80,28 +82,26 @@ def ajax_view(request):
                 # "--img",
                 # "640",
                 "--device",
-                1,
+                "1",
                 "--conf-thres",
-                0.2,
+                "0.2",
                 "--weights",
                 str(model_path),
                 "--name",
                 run_name,
-                # "--save-txt",
-                # "--save-crop",
-                # "--save-conf"
+                "--save-txt",
+                "--save-crop",
+                "--save-conf"
             ]
             result = subprocess.run(cmd)
-            tmp_results = tmp_folder / "results.txt"
+            tmp_results = tmp_folder / "labels" / f"{Path(file_name).stem}.txt"
             if tmp_results.exists():
                 with open(str(tmp_results), "r") as tmp_file:
                     detections = tmp_file.readlines()
             else:
-                msg = "No results.txt file found"
+                msg = f"No labels/<image name>.txt file found at {str(tmp_results)}"
                 logging.log(level=logging.CRITICAL, msg=msg)
                 return JsonResponse({"error": msg})
-
-            # tmp_folder.unlink()
 
             data = {
                 "detections": detections,
